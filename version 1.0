@@ -1,0 +1,41 @@
+*** Settings ***
+Documentation    (RequireSuiteDocumentation)
+Library    OperatingSystem
+Library    common.keypresses
+Library    Process
+Force Tags          wsus
+
+
+
+
+*** Variables ***
+
+
+*** Test cases ***
+Download PSWindowsUpdate
+    Run process    Powershell.exe    Install-module PSWindowsUpdate
+    ${install}    set variable    powershell.exe Install-module PSWindowsUpdate -Force -Verbose
+    ${status}    Run And Return Rc And Output    ${install}
+    Should Contain    '${status}'   was installed successfully
+
+Set Execution Policy Remotesigned
+    ${execution}    set variable    powershell.exe Set-ExecutionPolicy RemoteSigned -Force -Verbose
+    Run And Return Rc And Output    ${execution}
+
+Import PSWindowsModule
+    ${import}    set variable    powershell.exe Import-Module PSWindowsUpdate -Force -Verbose
+    Run And Return Rc And Output    ${import}
+
+Install WindowsUpdate
+    ${update}     set variable    powershell.exe Get-WindowsUpdate -ForceDownload -Verbose
+    #${reboot}    set variable    powershell.exe Restart-Computer
+    ${status}     Run And Return Rc And Output    ${update}
+    ${outcome}    Run Keyword And Return Status     Should Not Contain    '${status}'  Found [0] Updates in pre search criteria
+    Run Keyword If      '${outcome}' == 'True'     Run    ${reboot}
+
+Verify All Updates Installed
+    ${update}    set variable    powershell.exe Install-WindowsUpdate -ForceDownload -Verbose
+    ${verify}    Wait Until Keyword Succeeds    10s    10s    Run And Return Rc And Output    ${update}
+    #Run keyword if    ${verify}
+
+*** Keywords ***
